@@ -6,20 +6,20 @@
 
 #import "YMLoginController.h"
 #import "YMHTTPClient.h"
-#import "AFJSONRequestOperation.h"
+#import "AFNetworking.h"
 #import "NSURL+YMQueryParameters.h"
 #import <sys/utsname.h>
 
 @interface YMHTTPClient ()
 
-@property (nonatomic, strong, readonly) AFHTTPClient *httpClient;
+@property (nonatomic, strong, readonly) AFHTTPRequestOperationManager *requestManager;
 @property (nonatomic, strong) NSURL *baseURL;
 
 @end
 
 @implementation YMHTTPClient
 {
-    AFHTTPClient *_httpClient;
+    AFHTTPRequestOperationManager *_requestManager;
     NSString *_authToken;
 }
 
@@ -36,7 +36,9 @@
 
 - (void)updateAuthToken
 {
-    [_httpClient setDefaultHeader:@"Authorization" value:[NSString stringWithFormat:@"Bearer %@", self.authToken]];
+    NSString *headerField = @"Authorization";
+    NSString *value = [NSString stringWithFormat:@"Bearer %@", self.authToken];
+    [self.requestManager.requestSerializer setValue:value forHTTPHeaderField:headerField];
 }
 
 - (id)initWithBaseURL:(NSURL *)baseURL
@@ -61,20 +63,18 @@
     return self;
 }
 
-- (AFHTTPClient *)httpClient
+- (AFHTTPRequestOperationManager *)requestManager
 {
-    if (_httpClient)
-        return _httpClient;
+    if (_requestManager)
+        return _requestManager;
     
-    _httpClient = [[AFHTTPClient alloc] initWithBaseURL:self.baseURL];
-    [_httpClient registerHTTPOperationClass:[AFJSONRequestOperation class]];
-    [_httpClient setDefaultHeader:@"Accept" value:@"application/json"];
-    [_httpClient setDefaultHeader:@"User-Agent" value:[self userAgent]];
+    _requestManager = [[AFHTTPRequestOperationManager alloc] initWithBaseURL:self.baseURL];
+    [_requestManager.requestSerializer setValue:[self userAgent] forHTTPHeaderField:@"User-Agent"];
     if (self.authToken) {
         [self updateAuthToken];
     }
     
-    return _httpClient;
+    return _requestManager;
 }
 
 //example: Yammer/4.0.0.141 (iPhone; iPhone OS 5.0.1; tr_TR; en)
@@ -103,8 +103,7 @@
         failure:(void (^)(NSError *error))failure
 {
     NSLog(@"GET %@", path);
-    [self.httpClient getPath:path parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
-
+    [self.requestManager GET:path parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
         success(responseObject);
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
         failure(error);
@@ -117,17 +116,16 @@
          failure:(void (^)(NSInteger statusCode, NSError *error))failure
 {
     NSLog(@"POST %@", path);
-    [self.httpClient postPath:path
-               parameters:parameters
-                  success:^(AFHTTPRequestOperation *operation, id responseObject) {
-                      success(responseObject);
-                  }
-                  failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-                      // Forward the error
-                      NSHTTPURLResponse *response = [operation response];
-                      NSInteger statusCode = [response statusCode];
-                      failure(statusCode, error);
-                  }];
+    [self.requestManager POST:path parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        
+        success(responseObject);
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        // Forward the error
+        NSHTTPURLResponse *response = [operation response];
+        NSInteger statusCode = [response statusCode];
+        failure(statusCode, error);
+        
+    }];
 }
 
 @end

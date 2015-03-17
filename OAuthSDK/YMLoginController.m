@@ -9,6 +9,7 @@
 #import "PDKeychainBindings.h"
 #import "YMHTTPClient.h"
 #import "NSURL+YMQueryParameters.h"
+#import "RequestUtils.h"
 
 /////////////////////////////////////////////////////////
 // Yammer iOS Client SDK
@@ -49,7 +50,7 @@ NSString * const YAMMER_KEYCHAIN_STATE_KEY = @"yammerState";
                              @"redirect_uri": YAMMER_AUTH_REDIRECT_URI,
                              @"state": stateParam};
     
-    NSString *query = AFQueryStringFromParametersWithEncoding(params, NSUTF8StringEncoding);
+    NSString *query = [NSString URLQueryWithParameters:params];
     NSString *urlString = [NSString stringWithFormat:@"%@/dialog/oauth?%@", YAMMER_BASE_URL, query];
 
     // Yammer SDK: This will launch mobile (iOS) Safari and begin the two-step login process.

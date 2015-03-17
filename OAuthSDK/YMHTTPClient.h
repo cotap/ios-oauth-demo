@@ -5,7 +5,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "AFHTTPClient.h"
 
 static NSString *const STATE_PARAM = @"state";
 
